@@ -1,4 +1,5 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Cloud Agent 预览通常只转发 3000 端口，API 走 Next.js 同源代理（见 next.config.ts rewrites）
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export type Citation = {
   law: string;
