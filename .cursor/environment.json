@@ -1,0 +1,13 @@
+{
+  "install": "pip3 install -r backend/requirements.txt && cd frontend && npm install && cd .. && python3 scripts/import_laws.py || true",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "uvicorn backend.main:app --host 0.0.0.0 --port 8000"
+    },
+    {
+      "name": "frontend",
+      "command": "cd frontend && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    }
+  ]
+}
