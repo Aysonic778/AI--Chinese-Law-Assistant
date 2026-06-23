@@ -30,8 +30,19 @@ async def import_law_file(
     file_path: Path,
     law_name: str,
     version_date: str,
+    raw_text: str | None = None,
 ) -> Document:
-    text = file_path.read_text(encoding="utf-8")
+    text = raw_text if raw_text is not None else file_path.read_text(encoding="utf-8")
+    return await import_law_text(session, text, law_name, version_date, file_path.name)
+
+
+async def import_law_text(
+    session: AsyncSession,
+    text: str,
+    law_name: str,
+    version_date: str,
+    source_filename: str = "upload.txt",
+) -> Document:
     chunks = split_law_text(text, law_name=law_name, version_date=version_date)
 
     existing = await session.scalar(select(Document).where(Document.law_name == law_name))
@@ -41,13 +52,13 @@ async def import_law_file(
             await session.delete(chunk)
         document = existing
         document.version_date = version_date
-        document.source_filename = file_path.name
+        document.source_filename = source_filename
         document.chunk_count = 0
     else:
         document = Document(
             law_name=law_name,
             version_date=version_date,
-            source_filename=file_path.name,
+            source_filename=source_filename,
         )
         session.add(document)
         await session.flush()
@@ -87,6 +98,20 @@ async def import_law_file(
     await session.commit()
     await session.refresh(document)
     return document
+
+
+async def delete_document(session: AsyncSession, document_id: int) -> None:
+    document = await session.get(Document, document_id)
+    if not document:
+        raise ValueError("法律文档不存在")
+
+    collection = get_collection()
+    for chunk in list(document.chunks):
+        collection.delete(ids=[chunk.chroma_id])
+        await session.delete(chunk)
+
+    await session.delete(document)
+    await session.commit()
 
 
 async def list_documents(session: AsyncSession) -> list[Document]:

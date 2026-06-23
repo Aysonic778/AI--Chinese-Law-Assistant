@@ -48,6 +48,9 @@ npm run dev
 
 打开 http://localhost:3000
 
+- **对话页**：`/` — 法律问答
+- **资料库管理**：`/library` — 上传/查看/删除法律
+
 ### Cursor Cloud Agent 预览
 
 预览环境通常只转发 **3000** 端口。前端已通过 Next.js 将 `/api/*` 代理到后端 `8000`，因此：
@@ -62,6 +65,8 @@ npm run dev
 |---|---|---|
 | GET | `/api/health` | 健康检查 |
 | GET | `/api/library` | 资料库法律列表 |
+| POST | `/api/library/documents` | 上传法律文件（.txt/.md/.pdf/.docx） |
+| DELETE | `/api/library/documents/{id}` | 从资料库移除法律 |
 | GET | `/api/library/citations/{chunk_id}` | 查看引用原文 |
 | POST | `/api/chat` | 单轮问答（JSON） |
 | POST | `/api/chat/stream` | 单轮问答（SSE） |

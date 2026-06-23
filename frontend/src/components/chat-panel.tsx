@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -96,16 +97,26 @@ export function ChatPanel() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-8">
       <header className="mb-8 border-b border-zinc-200 pb-6 dark:border-zinc-800">
-        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          法律资料库可信问答
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          引用或拒答 — 只从资料库作答
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-          当前资料库已收录 {library.length} 部法律，共 {totalChunks} 个条文片段。
-          系统仅基于检索到的原文回答，查不到足够依据时会拒答并展示最接近条文。
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              法律资料库可信问答
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+              引用或拒答 — 只从资料库作答
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              当前资料库已收录 {library.length} 部法律，共 {totalChunks} 个条文片段。
+              系统仅基于检索到的原文回答，查不到足够依据时会拒答并展示最接近条文。
+            </p>
+          </div>
+          <Link
+            href="/library"
+            className="shrink-0 rounded-xl border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          >
+            资料库管理
+          </Link>
+        </div>
       </header>
 
       <section className="flex-1 space-y-6">

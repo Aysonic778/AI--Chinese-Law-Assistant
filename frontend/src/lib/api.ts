@@ -42,6 +42,36 @@ export async function fetchLibrary(): Promise<DocumentItem[]> {
   return response.json();
 }
 
+export async function uploadDocument(
+  file: File,
+  lawName: string,
+  versionDate: string,
+): Promise<DocumentItem> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("law_name", lawName);
+  form.append("version_date", versionDate);
+
+  const response = await fetch(`${API_BASE}/api/library/documents`, {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || "上传失败");
+  }
+  return response.json();
+}
+
+export async function deleteDocument(documentId: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/library/documents/${documentId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("删除失败");
+  }
+}
+
 export async function fetchCitation(chunkId: string): Promise<ChunkDetail> {
   const response = await fetch(`${API_BASE}/api/library/citations/${chunkId}`);
   if (!response.ok) {
