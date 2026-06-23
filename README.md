@@ -2,9 +2,9 @@
 
 专为中国法律场景设计的 **「引用或拒答」** 式资料库问答 Web 应用。只从你指定的法律资料库作答，每条结论可追溯到具体法条；查不到足够依据时会拒答，并展示最接近的条文摘录。
 
-## 功能（MVP）
+## 功能
 
-- 预置 5 部核心法律（宪法、刑法、公司法、税收征收管理法、劳动法）
+- 预置 5 部核心法律 + **Web 页面上传新法律**（.txt / .md / .pdf / .docx）
 - 按「第 X 条」智能分块入库
 - 单阶段向量检索 + 强制法条引用
 - 软拒答（附最接近条文摘录）
@@ -30,12 +30,14 @@ cp .env.example .env
 ### 2. 后端
 
 ```bash
-python -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 python scripts/import_laws.py
 uvicorn backend.main:app --reload --port 8000
 ```
+
+> macOS 用户详见 [docs/LOCAL_MAC.md](docs/LOCAL_MAC.md)
 
 ### 3. 前端
 
