@@ -1,1 +1,96 @@
-# AI--Chinese-Law-Assistant
+# 法律资料库可信问答
+
+专为中国法律场景设计的 **「引用或拒答」** 式资料库问答 Web 应用。只从你指定的法律资料库作答，每条结论可追溯到具体法条；查不到足够依据时会拒答，并展示最接近的条文摘录。
+
+## 功能
+
+- 预置 5 部核心法律 + **Web 页面上传新法律**（.txt / .md / .pdf / .docx）
+- 按「第 X 条」智能分块入库
+- 两阶段 **Law Router** 自动选法 + **Reranker** 精排
+- 四层防幻觉：检索门槛、Prompt 约束、**引用校验**、**摘录兜底**
+- 多轮对话（`conversation_id`）+ 对话历史 API
+- Docker Compose 一键部署
+- Chat 对话页（SSE 流式输出）
+- 禁止联网、禁止外源知识
+
+## 技术栈
+
+- 前端：Next.js 15 + TypeScript + Tailwind
+- 后端：FastAPI + SQLite + ChromaDB
+- Embedding：`BAAI/bge-large-zh-v1.5` + Reranker：`BAAI/bge-reranker-large`
+- LLM：Qwen-Max / DeepSeek-V3（可配置，禁用 R1）
+
+## 快速开始
+
+### 1. 环境配置
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入 DEEPSEEK_API_KEY 或其他 LLM API Key
+```
+
+### 2. 后端
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+python scripts/import_laws.py
+uvicorn backend.main:app --reload --port 8000
+```
+
+> macOS 用户详见 [docs/LOCAL_MAC.md](docs/LOCAL_MAC.md)
+
+### 3. 前端
+
+```bash
+cd frontend
+cp .env.local.example .env.local
+npm install
+npm run dev
+```
+
+打开 http://localhost:3000
+
+### 4. Docker（可选）
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+打开 http://localhost:3000
+
+- **对话页**：`/` — 法律问答
+- **资料库管理**：`/library` — 上传/查看/删除法律
+
+### Cursor Cloud Agent 预览
+
+预览环境通常只转发 **3000** 端口。前端已通过 Next.js 将 `/api/*` 代理到后端 `8000`，因此：
+
+1. 确保后端与前端都已启动（见上方命令）
+2. 在预览中打开 **端口 3000**（不要只开 8000）
+3. 刷新页面即可
+
+## API
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/health` | 健康检查 |
+| GET | `/api/library` | 资料库法律列表 |
+| POST | `/api/library/documents` | 上传法律文件（.txt/.md/.pdf/.docx） |
+| DELETE | `/api/library/documents/{id}` | 从资料库移除法律 |
+| GET | `/api/library/citations/{chunk_id}` | 查看引用原文 |
+| POST | `/api/chat` | 单轮问答（JSON） |
+| POST | `/api/chat/stream` | 单轮问答（SSE） |
+| GET | `/api/chat/conversations` | 对话历史列表 |
+| GET | `/api/chat/conversations/{id}` | 对话详情 |
+
+## 免责声明
+
+本系统生成的内容仅供参考，不构成法律意见。重要决策请咨询执业律师。
+
+## 文档
+
+- [产品规格书](docs/SPEC.md)
+- [开发说明](AGENTS.md)
