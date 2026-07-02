@@ -26,6 +26,7 @@ export function ChatPanel() {
   const [library, setLibrary] = useState<DocumentItem[]>([]);
   const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
   const [citationDetail, setCitationDetail] = useState<string>("");
+  const [conversationId, setConversationId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchLibrary()
@@ -62,9 +63,12 @@ export function ChatPanel() {
     let assistantMeta: ChatMeta | undefined;
 
     try {
-      for await (const eventData of streamChat(question)) {
+      for await (const eventData of streamChat(question, conversationId)) {
         if (eventData.type === "meta") {
           assistantMeta = eventData;
+          if (eventData.conversation_id) {
+            setConversationId(eventData.conversation_id);
+          }
         } else if (eventData.type === "token") {
           assistantContent += eventData.content;
           setMessages((prev) => {
@@ -157,7 +161,9 @@ export function ChatPanel() {
                   <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                     {message.meta.response_type === "soft_refusal"
                       ? "软拒答：未找到足够依据，以下条文仅供参考。"
-                      : "拒答：资料库中暂无足够法律依据。"}
+                      : message.meta.response_type === "extractive"
+                        ? "摘录模式：以下内容为资料库原文摘录，未经 AI 改写。"
+                        : "拒答：资料库中暂无足够法律依据。"}
                   </p>
                 )}
 

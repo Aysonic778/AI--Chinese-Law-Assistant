@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
+    conversation_id: int | None = None
 
 
 class CitationResponse(BaseModel):
@@ -20,6 +21,7 @@ class ChatResponse(BaseModel):
     citations: list[CitationResponse]
     grounding_score: float
     refusal_reason: str | None = None
+    conversation_id: int | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -36,3 +38,25 @@ class ChunkResponse(BaseModel):
     chapter: str
     content: str
     version_date: str
+
+
+class MessageResponse(BaseModel):
+    id: int
+    role: str
+    content: str
+    response_type: str
+    citations: list[CitationResponse]
+    created_at: str
+
+
+class ConversationSummary(BaseModel):
+    id: int
+    title: str
+    updated_at: str
+    message_count: int
+
+
+class ConversationDetail(BaseModel):
+    id: int
+    title: str
+    messages: list[MessageResponse]

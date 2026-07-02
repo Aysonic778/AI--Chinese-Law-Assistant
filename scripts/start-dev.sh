@@ -26,7 +26,7 @@ start_session() {
 }
 
 echo "Starting backend on :8000 ..."
-start_session "backend-api" "$ROOT" "cd $ROOT && uvicorn backend.main:app --host 0.0.0.0 --port 8000"
+start_session "backend-api" "$ROOT" "cd $ROOT && python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000"
 
 echo "Starting frontend on :3000 ..."
 start_session "frontend-dev" "$ROOT/frontend" "cd $ROOT/frontend && npm run dev -- --hostname 0.0.0.0 --port 3000"

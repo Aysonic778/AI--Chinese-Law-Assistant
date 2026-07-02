@@ -11,11 +11,12 @@ export type Citation = {
 
 export type ChatMeta = {
   type: "meta";
-  response_type: "answer" | "refusal" | "soft_refusal";
+  response_type: "answer" | "refusal" | "soft_refusal" | "extractive";
   referenced_laws: string[];
   citations: Citation[];
   grounding_score: number;
   refusal_reason?: string | null;
+  conversation_id?: number | null;
 };
 
 export type DocumentItem = {
@@ -80,7 +81,10 @@ export async function fetchCitation(chunkId: string): Promise<ChunkDetail> {
   return response.json();
 }
 
-export async function* streamChat(question: string): AsyncGenerator<
+export async function* streamChat(
+  question: string,
+  conversationId?: number | null,
+): AsyncGenerator<
   | ChatMeta
   | { type: "token"; content: string }
   | { type: "done" }
@@ -88,7 +92,10 @@ export async function* streamChat(question: string): AsyncGenerator<
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({
+      question,
+      conversation_id: conversationId ?? null,
+    }),
   });
 
   if (!response.ok) {

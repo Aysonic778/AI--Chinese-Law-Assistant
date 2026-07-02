@@ -13,6 +13,20 @@
 - 禁止使用 `deepseek-reasoner`（DeepSeek-R1）
 - 查不到足够依据时必须拒答或软拒答
 
+## Docker 启动
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+## 架构要点
+
+- 两阶段 Law Router：法律摘要路由 → 法条检索
+- Reranker：`BAAI/bge-reranker-large`
+- 四层防幻觉：检索门槛、Prompt 约束、引用校验、摘录兜底
+- 多轮对话：`conversation_id` + `GET /api/chat/conversations`
+
 ## 本地启动
 
 ```bash

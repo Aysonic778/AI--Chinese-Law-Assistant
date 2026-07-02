@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from backend.config import settings
+from backend.services.law_router import LawRouter
+from backend.services.reranker import rerank
 from backend.services.embeddings import get_collection
 
 
@@ -15,6 +17,7 @@ class RetrievedChunk:
     content: str
     version_date: str
     score: float
+    rerank_score: float = 0.0
 
     @property
     def citation_label(self) -> str:
@@ -24,18 +27,67 @@ class RetrievedChunk:
 
 
 class Retriever:
+    def __init__(self) -> None:
+        self.law_router = LawRouter()
+
     def search(self, query: str, top_k: int | None = None) -> list[RetrievedChunk]:
         top_k = top_k or settings.retrieval_top_k
         collection = get_collection()
         if collection.count() == 0:
             return []
 
-        result = collection.query(
-            query_texts=[query],
-            n_results=min(top_k, collection.count()),
-            include=["documents", "metadatas", "distances"],
-        )
+        routed_laws = self.law_router.route(query)
+        law_names = [name for name, _ in routed_laws]
 
+        query_kwargs: dict = {
+            "query_texts": [query],
+            "n_results": min(top_k * 2, collection.count()),
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if law_names:
+            query_kwargs["where"] = {
+                "$and": [
+                    {"chunk_type": {"$ne": "law_summary"}},
+                    {"law_name": {"$in": law_names}},
+                ]
+            }
+        else:
+            query_kwargs["where"] = {"chunk_type": {"$ne": "law_summary"}}
+
+        result = collection.query(**query_kwargs)
+
+        chunks = self._parse_results(result)
+        if not chunks and law_names:
+            result = collection.query(
+                query_texts=[query],
+                n_results=min(top_k * 2, collection.count()),
+                where={"chunk_type": {"$ne": "law_summary"}},
+                include=["documents", "metadatas", "distances"],
+            )
+            chunks = self._parse_results(result)
+
+        if not chunks:
+            return []
+
+        ranked_indices = rerank(query, [chunk.content for chunk in chunks], top_k=top_k)
+        reranked: list[RetrievedChunk] = []
+        for index, rerank_score in ranked_indices:
+            chunk = chunks[index]
+            reranked.append(
+                RetrievedChunk(
+                    chroma_id=chunk.chroma_id,
+                    law_name=chunk.law_name,
+                    article_number=chunk.article_number,
+                    chapter=chunk.chapter,
+                    content=chunk.content,
+                    version_date=chunk.version_date,
+                    score=chunk.score,
+                    rerank_score=rerank_score,
+                )
+            )
+        return reranked
+
+    def _parse_results(self, result: dict) -> list[RetrievedChunk]:
         chunks: list[RetrievedChunk] = []
         ids = result.get("ids", [[]])[0]
         documents = result.get("documents", [[]])[0]
@@ -43,6 +95,8 @@ class Retriever:
         distances = result.get("distances", [[]])[0]
 
         for chroma_id, document, metadata, distance in zip(ids, documents, metadatas, distances, strict=True):
+            if metadata.get("chunk_type") == "law_summary":
+                continue
             similarity = 1.0 - float(distance)
             chunks.append(
                 RetrievedChunk(
@@ -55,5 +109,4 @@ class Retriever:
                     score=similarity,
                 )
             )
-
         return chunks

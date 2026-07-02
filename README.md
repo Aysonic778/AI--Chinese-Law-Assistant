@@ -6,8 +6,10 @@
 
 - 预置 5 部核心法律 + **Web 页面上传新法律**（.txt / .md / .pdf / .docx）
 - 按「第 X 条」智能分块入库
-- 单阶段向量检索 + 强制法条引用
-- 软拒答（附最接近条文摘录）
+- 两阶段 **Law Router** 自动选法 + **Reranker** 精排
+- 四层防幻觉：检索门槛、Prompt 约束、**引用校验**、**摘录兜底**
+- 多轮对话（`conversation_id`）+ 对话历史 API
+- Docker Compose 一键部署
 - Chat 对话页（SSE 流式输出）
 - 禁止联网、禁止外源知识
 
@@ -15,7 +17,7 @@
 
 - 前端：Next.js 15 + TypeScript + Tailwind
 - 后端：FastAPI + SQLite + ChromaDB
-- Embedding：`BAAI/bge-small-zh-v1.5`
+- Embedding：`BAAI/bge-large-zh-v1.5` + Reranker：`BAAI/bge-reranker-large`
 - LLM：Qwen-Max / DeepSeek-V3（可配置，禁用 R1）
 
 ## 快速开始
@@ -50,6 +52,15 @@ npm run dev
 
 打开 http://localhost:3000
 
+### 4. Docker（可选）
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+打开 http://localhost:3000
+
 - **对话页**：`/` — 法律问答
 - **资料库管理**：`/library` — 上传/查看/删除法律
 
@@ -72,6 +83,8 @@ npm run dev
 | GET | `/api/library/citations/{chunk_id}` | 查看引用原文 |
 | POST | `/api/chat` | 单轮问答（JSON） |
 | POST | `/api/chat/stream` | 单轮问答（SSE） |
+| GET | `/api/chat/conversations` | 对话历史列表 |
+| GET | `/api/chat/conversations/{id}` | 对话详情 |
 
 ## 免责声明
 

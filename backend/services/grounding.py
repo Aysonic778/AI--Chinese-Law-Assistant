@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from backend.config import settings
@@ -16,6 +17,9 @@ class GroundingDecision:
     grounding_score: float = 0.0
 
 
+CITATION_PATTERN = re.compile(r"[《\[]([^》\]]+)[》\]]\s*(第[一二三四五六七八九十百零〇\d]+条)?")
+
+
 def _to_citation(chunk: RetrievedChunk) -> Citation:
     return Citation(
         law=chunk.law_name,
@@ -24,6 +28,11 @@ def _to_citation(chunk: RetrievedChunk) -> Citation:
         excerpt=chunk.content[:500],
         version_date=chunk.version_date,
     )
+
+
+def _gate_score(chunk: RetrievedChunk) -> float:
+    """检索门槛使用向量相似度（0~1），Reranker 仅用于排序。"""
+    return chunk.score
 
 
 def evaluate_retrieval(chunks: list[RetrievedChunk]) -> GroundingDecision:
@@ -36,7 +45,7 @@ def evaluate_retrieval(chunks: list[RetrievedChunk]) -> GroundingDecision:
             grounding_score=0.0,
         )
 
-    best_score = max(chunk.score for chunk in chunks)
+    best_score = max(_gate_score(chunk) for chunk in chunks)
     if best_score < settings.min_relevance_score:
         soft_chunks = chunks[: settings.soft_refusal_top_k]
         return GroundingDecision(
@@ -47,7 +56,7 @@ def evaluate_retrieval(chunks: list[RetrievedChunk]) -> GroundingDecision:
             grounding_score=best_score,
         )
 
-    usable = [chunk for chunk in chunks if chunk.score >= settings.min_relevance_score]
+    usable = [chunk for chunk in chunks if _gate_score(chunk) >= settings.min_relevance_score]
     return GroundingDecision(
         response_type="answer",
         chunks=usable,
@@ -69,3 +78,38 @@ def build_soft_refusal_message(decision: GroundingDecision) -> str:
         lines.append("")
     lines.append("建议在「资料库管理」中补充相关法律文件后再次提问。")
     return "\n".join(lines).strip()
+
+
+def build_extractive_answer(decision: GroundingDecision, question: str) -> str:
+    lines = [
+        "根据资料库检索结果，相关原文摘录如下（未经 AI 改写）：",
+        "",
+    ]
+    for index, chunk in enumerate(decision.chunks[:5], start=1):
+        lines.append(f"{index}. {chunk.citation_label}")
+        lines.append(chunk.content)
+        lines.append("")
+    lines.append("以上摘录来自资料库，如需完整结论请结合专业人士意见。")
+    return "\n".join(lines).strip()
+
+
+def verify_citations(answer: str, decision: GroundingDecision) -> bool:
+    if not settings.enable_citation_verify:
+        return True
+
+    available = {
+        (citation.law, citation.article): True
+        for citation in decision.citations
+    }
+    available_laws = {citation.law for citation in decision.citations}
+
+    for match in CITATION_PATTERN.finditer(answer):
+        law = match.group(1).strip()
+        article = (match.group(2) or "").strip()
+        if law not in available_laws:
+            return False
+        if article and (law, article) not in available and not any(
+            key[0] == law and key[1] == article for key in available
+        ):
+            return False
+    return True
